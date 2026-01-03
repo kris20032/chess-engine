@@ -42,6 +42,25 @@ export function makeMove(position: Position, move: Move): boolean {
   const flags = getMoveFlags(move);
   const isWhite = position.sideToMove === 'white';
 
+  // Validate castling BEFORE making the move
+  if (isKingsideCastle(move) || isQueensideCastle(move)) {
+    // Can't castle out of check
+    if (isSquareAttacked(position, from, !isWhite)) {
+      return false;
+    }
+
+    // Can't castle through check
+    const throughSquare = isKingsideCastle(move)
+      ? (isWhite ? SQUARES.F1 : SQUARES.F8)
+      : (isWhite ? SQUARES.D1 : SQUARES.D8);
+
+    if (isSquareAttacked(position, throughSquare, !isWhite)) {
+      return false;
+    }
+
+    // Can't castle into check (will be validated after move)
+  }
+
   // Save state for unmake
   const state: PositionState = {
     castlingRights: position.castlingRights,
@@ -149,29 +168,12 @@ export function makeMove(position: Position, move: Move): boolean {
   // Store position in history for repetition detection
   position.positionHistory.push(newHash);
 
-  // Check if move is legal (king not in check)
+  // Check if move is legal (king not in check after move)
   const kingSquare = position.kingSquare(isWhite ? 'white' : 'black');
   if (isSquareAttacked(position, kingSquare, !isWhite)) {
     // Illegal move - undo
     unmakeMove(position, move);
     return false;
-  }
-
-  // Additional castling legality: check if king passed through attacked square
-  if (isKingsideCastle(move) || isQueensideCastle(move)) {
-    // Check the square the king passed through
-    const throughSquare = isKingsideCastle(move)
-      ? (isWhite ? SQUARES.F1 : SQUARES.F8)
-      : (isWhite ? SQUARES.D1 : SQUARES.D8);
-
-    // Also check original square (can't castle out of check)
-    if (
-      isSquareAttacked(position, from, !isWhite) ||
-      isSquareAttacked(position, throughSquare, !isWhite)
-    ) {
-      unmakeMove(position, move);
-      return false;
-    }
   }
 
   return true;

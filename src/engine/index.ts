@@ -114,9 +114,8 @@ export {
   canClaimFiftyMoveDraw,
   canClaimRepetitionDraw,
   getStatusString,
-  GameStatus,
-  GameState,
 } from './gamestate';
+export type { GameStatus, GameState } from './gamestate';
 
 // Perft testing
 export {
@@ -128,15 +127,31 @@ export {
   PERFT_POSITIONS,
 } from './perft';
 
+// Evaluation
+export { evaluate, evaluateRelative } from './evaluation';
+
+// Search
+export {
+  searchPosition,
+  getBestMove,
+  getBestMoveWithTime,
+} from './search';
+export type { SearchStats } from './search';
+
+// Transposition table
+export { TranspositionTable, TTEntryType, globalTT } from './transposition';
+
 /**
  * Chess Engine class for convenient usage
  */
 import { Position } from './position';
-import { generateLegalMoves, makeMove, unmakeMove } from './makemove';
+import { generateLegalMoves, makeMove } from './makemove';
 import { getGameState, isGameOver } from './gamestate';
-import { moveToUCI, parseUCI, createMove, MoveList } from './move';
+import { moveToUCI, parseUCI } from './move';
 import { generateMoves, isInCheck } from './movegen';
-import { STARTING_FEN, Move, MOVE_FLAGS } from '@/types/chess';
+import { STARTING_FEN, Move } from '@/types/chess';
+import { getBestMove, searchPosition } from './search';
+import type { SearchStats } from './search';
 
 export class Engine {
   private position: Position;
@@ -261,5 +276,56 @@ export class Engine {
     const engine = new Engine();
     engine.position = this.position.clone();
     return engine;
+  }
+
+  /**
+   * Get best move at given depth (AI move)
+   */
+  getBestMove(depth: number): Move | null {
+    return getBestMove(this.position, depth);
+  }
+
+  /**
+   * Get best move with time limit (AI move)
+   */
+  getBestMoveWithTime(timeMs: number): Move | null {
+    return getBestMove(this.position, Math.max(1, Math.floor(timeMs / 1000)));
+  }
+
+  /**
+   * Search position and return statistics
+   */
+  search(depth: number, timeLimit?: number): SearchStats {
+    return searchPosition(this.position, depth, timeLimit);
+  }
+
+  /**
+   * Get AI move for difficulty level
+   * @param difficulty - 1 (easiest) to 10 (hardest)
+   */
+  getAIMove(difficulty: number = 5): Move | null {
+    // Map difficulty to search depth
+    // 1-2: depth 1-2 (beginner)
+    // 3-4: depth 3-4 (intermediate)
+    // 5-6: depth 5-6 (advanced)
+    // 7-8: depth 7-8 (expert)
+    // 9-10: depth 9-10 (master)
+    const depth = Math.max(1, Math.min(10, difficulty));
+    return this.getBestMove(depth);
+  }
+
+  /**
+   * Make AI move at given difficulty
+   * Returns the move made (UCI format) or null if no legal moves
+   */
+  makeAIMove(difficulty: number = 5): string | null {
+    const move = this.getAIMove(difficulty);
+    if (!move) return null;
+
+    const uci = moveToUCI(move);
+    if (makeMove(this.position, move)) {
+      return uci;
+    }
+    return null;
   }
 }

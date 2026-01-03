@@ -224,13 +224,13 @@ describe('Move Generation', () => {
   });
 
   test('cannot castle through check', () => {
-    // Rook attacks f1
-    const fen = 'r3k2r/pppppppp/8/8/8/5r2/PPPPPPPP/R3K2R w KQkq - 0 1';
+    // Rook attacks f1 (no pawn on f2 to block it)
+    const fen = 'r3k2r/pppppppp/8/8/8/5r2/PPPPP1PP/R3K2R w KQkq - 0 1';
     const pos = Position.fromFEN(fen);
 
     const engine = new Engine(fen);
     const uciMoves = engine.getLegalMovesUCI();
-    expect(uciMoves).not.toContain('e1g1'); // Blocked kingside
+    expect(uciMoves).not.toContain('e1g1'); // Blocked kingside - rook attacks f1
   });
 
   test('en passant is generated correctly', () => {
@@ -293,7 +293,8 @@ describe('Game State', () => {
   });
 
   test('detects stalemate', () => {
-    const fen = 'k7/8/1K6/8/8/8/8/8 b - - 0 1';
+    // Black king on a8, white king on b6, white queen on c7 - black has no legal moves
+    const fen = 'k7/2Q5/1K6/8/8/8/8/8 b - - 0 1';
     const pos = Position.fromFEN(fen);
     const state = getGameState(pos);
 
