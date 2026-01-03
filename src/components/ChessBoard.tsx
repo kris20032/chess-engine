@@ -17,6 +17,7 @@ interface ChessBoardProps {
   legalMoves?: string[];
   flipped?: boolean;
   isInteractive?: boolean;
+  isInCheck?: boolean;
 }
 
 export function ChessBoard({
@@ -27,9 +28,12 @@ export function ChessBoard({
   legalMoves = [],
   flipped = false,
   isInteractive = true,
+  isInCheck = false,
 }: ChessBoardProps) {
   const [draggedFrom, setDraggedFrom] = useState<string | null>(null);
   const [promotionDialog, setPromotionDialog] = useState<{from: string; to: string} | null>(null);
+  const [lastMove, setLastMove] = useState<{from: string; to: string} | null>(null);
+  const [animatingPiece, setAnimatingPiece] = useState<{square: string; piece: string} | null>(null);
 
   // Parse FEN to get piece positions
   const position = Position.fromFEN(fen);
@@ -63,6 +67,9 @@ export function ChessBoard({
         setPromotionDialog({ from: selectedSquare, to: square });
       } else {
         const success = onMove(selectedSquare, square);
+        if (success) {
+          setLastMove({ from: selectedSquare, to: square });
+        }
         if (!success && square !== selectedSquare) {
           // If move failed, maybe selecting a new piece
           onSquareClick(square);
@@ -97,7 +104,10 @@ export function ChessBoard({
       if (isPromotion && isLegalMove(draggedFrom, square)) {
         setPromotionDialog({ from: draggedFrom, to: square });
       } else {
-        onMove(draggedFrom, square);
+        const success = onMove(draggedFrom, square);
+        if (success) {
+          setLastMove({ from: draggedFrom, to: square });
+        }
       }
     }
     setDraggedFrom(null);
@@ -105,7 +115,10 @@ export function ChessBoard({
 
   const handlePromotion = (piece: string) => {
     if (promotionDialog) {
-      onMove(promotionDialog.from, promotionDialog.to, piece);
+      const success = onMove(promotionDialog.from, promotionDialog.to, piece);
+      if (success) {
+        setLastMove({ from: promotionDialog.from, to: promotionDialog.to });
+      }
       setPromotionDialog(null);
     }
   };
@@ -122,13 +135,22 @@ export function ChessBoard({
     // Check if this square is a legal move destination
     const isLegalDestination = selectedSquare && isLegalMove(selectedSquare, square);
 
+    // Check if this square is part of last move
+    const isLastMoveFrom = lastMove?.from === square;
+    const isLastMoveTo = lastMove?.to === square;
+
+    // Check if this is the king square and in check
+    const isKingInCheck = isInCheck && (piece === 'K' || piece === 'k');
+
     return (
       <div
         key={square}
         className={`
           aspect-square flex items-center justify-center text-4xl sm:text-5xl md:text-6xl cursor-pointer
-          transition-colors relative
+          transition-all duration-200 relative
           ${isLight ? 'bg-amber-100' : 'bg-amber-700'}
+          ${isKingInCheck ? 'bg-red-500 animate-pulse' : ''}
+          ${!isKingInCheck && (isLastMoveFrom || isLastMoveTo) ? (isLight ? 'bg-yellow-200' : 'bg-yellow-600') : ''}
           ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
           ${isLegalDestination ? 'ring-4 ring-green-400 ring-inset' : ''}
         `}
@@ -140,13 +162,21 @@ export function ChessBoard({
           <div
             draggable={isInteractive}
             onDragStart={(e) => handleDragStart(e, square)}
-            className={`select-none ${piece === piece.toUpperCase() ? 'text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]' : 'text-black drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]'}`}
+            className={`
+              select-none transition-all duration-200
+              ${isInteractive ? 'hover:scale-110 active:scale-95' : ''}
+              ${piece === piece.toUpperCase() ? 'text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]' : 'text-black drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]'}
+              ${draggedFrom === square ? 'opacity-50' : 'opacity-100'}
+            `}
           >
             {PIECE_SYMBOLS[piece]}
           </div>
         )}
         {isLegalDestination && !piece && (
-          <div className="w-4 h-4 bg-green-500 rounded-full opacity-50" />
+          <div className="w-4 h-4 bg-green-500 rounded-full opacity-50 animate-pulse" />
+        )}
+        {isLegalDestination && piece && (
+          <div className="absolute inset-0 border-4 border-green-500 rounded opacity-40 animate-pulse pointer-events-none" />
         )}
         {/* Coordinate labels */}
         {file === (flipped ? 7 : 0) && (
@@ -173,15 +203,15 @@ export function ChessBoard({
 
       {/* Promotion dialog */}
       {promotionDialog && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl">
-            <h3 className="text-lg font-bold mb-4">Choose promotion piece:</h3>
-            <div className="flex gap-4">
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm animate-in fade-in duration-200 z-10">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl shadow-2xl border-2 border-amber-500 animate-in zoom-in-95 duration-300">
+            <h3 className="text-2xl font-bold mb-6 text-center text-amber-400">Promote to:</h3>
+            <div className="flex gap-3">
               {['q', 'r', 'b', 'n'].map(piece => (
                 <button
                   key={piece}
                   onClick={() => handlePromotion(piece)}
-                  className="text-6xl hover:bg-gray-100 p-4 rounded transition-colors"
+                  className="text-7xl hover:scale-110 active:scale-95 bg-amber-100 hover:bg-amber-200 p-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   {PIECE_SYMBOLS[piece]}
                 </button>

@@ -79,6 +79,7 @@ export default function Home() {
               legalMoves={legalMoves}
               flipped={!playingAsWhite}
               isInteractive={!isAIThinking && gameState.status === 'ongoing'}
+              isInCheck={isInCheck}
             />
 
             {/* Status Bar */}
@@ -87,6 +88,61 @@ export default function Home() {
                 {getStatusMessage()}
               </div>
             </div>
+
+            {/* Game Over Modal */}
+            {gameState.status !== 'ongoing' && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm z-50 animate-in fade-in duration-300">
+                <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-10 rounded-3xl shadow-2xl border-4 border-amber-500 max-w-md w-full mx-4 animate-in zoom-in-95 duration-500">
+                  {gameState.status === 'checkmate' && (
+                    <>
+                      <div className="text-6xl text-center mb-6 animate-bounce">
+                        {gameState.winner === (playingAsWhite ? 'white' : 'black') ? '🎉' : '😢'}
+                      </div>
+                      <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
+                        {gameState.winner === (playingAsWhite ? 'white' : 'black') ? 'You Won!' : 'You Lost!'}
+                      </h2>
+                      <p className="text-xl text-center text-slate-300 mb-8">
+                        Checkmate! {gameState.winner === 'white' ? 'White' : 'Black'} wins!
+                      </p>
+                    </>
+                  )}
+                  {gameState.status === 'stalemate' && (
+                    <>
+                      <div className="text-6xl text-center mb-6">🤝</div>
+                      <h2 className="text-4xl font-bold text-center mb-4 text-amber-400">
+                        Stalemate!
+                      </h2>
+                      <p className="text-xl text-center text-slate-300 mb-8">
+                        The game is a draw.
+                      </p>
+                    </>
+                  )}
+                  {(gameState.status === 'draw_insufficient_material' ||
+                    gameState.status === 'draw_fifty_move' ||
+                    gameState.status === 'draw_repetition') && (
+                    <>
+                      <div className="text-6xl text-center mb-6">🤝</div>
+                      <h2 className="text-4xl font-bold text-center mb-4 text-amber-400">
+                        Draw!
+                      </h2>
+                      <p className="text-xl text-center text-slate-300 mb-8">
+                        {gameState.status === 'draw_insufficient_material' && 'Insufficient material'}
+                        {gameState.status === 'draw_fifty_move' && 'Fifty-move rule'}
+                        {gameState.status === 'draw_repetition' && 'Threefold repetition'}
+                      </p>
+                    </>
+                  )}
+                  <div className="flex gap-4">
+                    <button
+                      onClick={resetGame}
+                      className="flex-1 py-4 px-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl font-bold text-lg transition-all transform hover:scale-105 active:scale-95"
+                    >
+                      New Game
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Controls Panel */}
