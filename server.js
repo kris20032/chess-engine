@@ -120,6 +120,51 @@ app.prepare().then(() => {
       }
     });
 
+    // Handle resignation
+    socket.on('resign', async (data) => {
+      try {
+        const { gameId, resigningColor } = data;
+        const result = resigningColor === 'white' ? 'black_win' : 'white_win';
+
+        await prisma.game.update({
+          where: { id: gameId },
+          data: { result, status: 'completed' },
+        });
+
+        io.to(`game:${gameId}`).emit('game_ended', { result, status: 'completed', reason: 'resignation' });
+      } catch (error) {
+        console.error('Error handling resignation:', error);
+      }
+    });
+
+    // Handle draw offer
+    socket.on('offer_draw', async (data) => {
+      try {
+        const { gameId, offeringColor } = data;
+
+        // Broadcast draw offer to opponent
+        socket.to(`game:${gameId}`).emit('draw_offered', { offeringColor });
+      } catch (error) {
+        console.error('Error offering draw:', error);
+      }
+    });
+
+    // Handle draw acceptance
+    socket.on('accept_draw', async (data) => {
+      try {
+        const { gameId } = data;
+
+        await prisma.game.update({
+          where: { id: gameId },
+          data: { result: 'draw', status: 'completed' },
+        });
+
+        io.to(`game:${gameId}`).emit('game_ended', { result: 'draw', status: 'completed', reason: 'agreement' });
+      } catch (error) {
+        console.error('Error accepting draw:', error);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
     });

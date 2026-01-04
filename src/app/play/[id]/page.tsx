@@ -22,6 +22,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
   const [whiteTime, setWhiteTime] = useState<number>(600); // Default 10 minutes
   const [blackTime, setBlackTime] = useState<number>(600);
   const [timeIncrement, setTimeIncrement] = useState<number>(0);
+  const [drawOffered, setDrawOffered] = useState(false);
 
   // Fetch game data and determine player color
   useEffect(() => {
@@ -119,6 +120,19 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
     setBlackTime(game.blackTimeLeft ?? initialSeconds);
     setTimeIncrement(increment);
   }, [game]);
+
+  // Listen for draw offers
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('draw_offered', () => {
+      setDrawOffered(true);
+    });
+
+    return () => {
+      socket.off('draw_offered');
+    };
+  }, [socket]);
 
   const {
     fen,
@@ -260,6 +274,38 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                 </div>
               </div>
             )}
+
+            {/* Draw Offer Modal */}
+            {drawOffered && gameState.status === 'ongoing' && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm z-50 animate-in fade-in duration-300">
+                <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-8 rounded-3xl shadow-2xl border-4 border-orange-500 max-w-md w-full mx-4">
+                  <div className="text-5xl text-center mb-4">🤝</div>
+                  <h2 className="text-3xl font-bold text-center mb-4 text-amber-400">
+                    Draw Offered
+                  </h2>
+                  <p className="text-lg text-center text-slate-300 mb-6">
+                    Your opponent has offered a draw.
+                  </p>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => {
+                        socket?.emit('accept_draw', { gameId });
+                        setDrawOffered(false);
+                      }}
+                      className="flex-1 py-3 px-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl font-bold text-lg transition-all transform hover:scale-105 active:scale-95"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => setDrawOffered(false)}
+                      className="flex-1 py-3 px-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl font-bold text-lg transition-all transform hover:scale-105 active:scale-95"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Game Info Panel */}
@@ -299,6 +345,28 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
             <div className="bg-slate-800 rounded-xl p-6 border-2 border-slate-700">
               <h3 className="text-xl font-bold mb-4 text-amber-400">Actions</h3>
               <div className="space-y-3">
+                {gameState.status === 'ongoing' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        if (confirm('Are you sure you want to resign?')) {
+                          socket?.emit('resign', { gameId, resigningColor: playerColor });
+                        }
+                      }}
+                      className="w-full py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-all"
+                    >
+                      🏳️ Resign
+                    </button>
+                    <button
+                      onClick={() => {
+                        socket?.emit('offer_draw', { gameId, offeringColor: playerColor });
+                      }}
+                      className="w-full py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition-all"
+                    >
+                      🤝 Offer Draw
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => router.push('/lobby')}
                   className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold transition-all"

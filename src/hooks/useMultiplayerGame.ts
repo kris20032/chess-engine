@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Engine } from '@/engine';
 import { getSocket } from './useSocket';
+import { playMoveSound, playCaptureSound, playCheckSound, playGameEndSound } from '@/utils/sounds';
 
 interface GameState {
   status: string;
@@ -82,9 +83,28 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     socket.on('move_made', (data: any) => {
       console.log('Opponent made move:', data);
       if (data.fen) {
+        const prevFen = engine.getFEN();
+        const prevPieceCount = prevFen.split(' ')[0].replace(/[^a-zA-Z]/g, '').length;
+
         engine.setPosition(data.fen);
         updateState();
         setMoveCount((prev) => prev + 1);
+
+        // Play sound for opponent's move
+        const newPieceCount = data.fen.split(' ')[0].replace(/[^a-zA-Z]/g, '').length;
+        const isCapture = newPieceCount < prevPieceCount;
+        const isCheck = engine.isInCheck();
+        const gameState = engine.getGameState();
+
+        if (gameState.status === 'checkmate' || gameState.status === 'stalemate') {
+          playGameEndSound();
+        } else if (isCheck) {
+          playCheckSound();
+        } else if (isCapture) {
+          playCaptureSound();
+        } else {
+          playMoveSound();
+        }
 
         // Add the new move to history
         if (data.move) {
@@ -136,11 +156,32 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     let uci = from + to;
     if (promotion) uci += promotion;
 
+    // Check if it's a capture before making the move
+    const currentFen = engine.getFEN();
+    const fenParts = currentFen.split(' ')[0];
+    const pieceCount = fenParts.replace(/[^a-zA-Z]/g, '').length;
+
     const success = engine.move(uci);
 
     if (success && socket) {
       const newFen = engine.getFEN();
+      const newFenParts = newFen.split(' ')[0];
+      const newPieceCount = newFenParts.replace(/[^a-zA-Z]/g, '').length;
+      const isCapture = newPieceCount < pieceCount;
+
       updateState();
+
+      // Play sound effect
+      const gameStateCheck = engine.getGameState();
+      if (gameStateCheck.status === 'checkmate' || gameStateCheck.status === 'stalemate') {
+        playGameEndSound();
+      } else if (engine.isInCheck()) {
+        playCheckSound();
+      } else if (isCapture) {
+        playCaptureSound();
+      } else {
+        playMoveSound();
+      }
 
       // Emit move to server
       socket.emit('make_move', {
@@ -158,7 +199,6 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
       setLegalMoves([]);
 
       // Check for game end
-      const gameStateCheck = engine.getGameState();
       if (gameStateCheck.status !== 'ongoing') {
         socket.emit('end_game', {
           gameId,
