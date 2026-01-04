@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChessBoard } from '@/components/ChessBoard';
 import { useChessGame } from '@/hooks/useChessGame';
+import { EvaluationBar } from '@/components/EvaluationBar';
 
 export default function Home() {
   const {
@@ -20,6 +21,8 @@ export default function Home() {
     changeDifficulty,
     sideToMove,
     isInCheck,
+    evaluation,
+    openingName,
   } = useChessGame(3);
 
   const handleSquareClick = (square: string) => {
@@ -82,6 +85,11 @@ export default function Home() {
               isInteractive={!isAIThinking && gameState.status === 'ongoing'}
               isInCheck={isInCheck}
             />
+
+            {/* Evaluation Bar */}
+            <div className="mt-4">
+              <EvaluationBar score={evaluation} openingName={openingName} />
+            </div>
 
             {/* Status Bar */}
             <div className="mt-4 p-4 bg-slate-800 rounded-lg text-center">

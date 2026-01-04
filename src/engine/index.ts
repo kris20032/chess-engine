@@ -152,6 +152,8 @@ import { generateMoves, isInCheck } from './movegen';
 import { STARTING_FEN, Move } from '@/types/chess';
 import { getBestMove, searchPosition } from './search';
 import type { SearchStats } from './search';
+import { evaluate } from './evaluation';
+import { getOpeningName } from './openingbook';
 
 export class Engine {
   private position: Position;
@@ -327,5 +329,22 @@ export class Engine {
       return uci;
     }
     return null;
+  }
+
+  /**
+   * Get position evaluation score
+   * Returns score in centipawns from white's perspective
+   * Positive = white is better, negative = black is better
+   */
+  getEvaluation(): number {
+    return evaluate(this.position);
+  }
+
+  /**
+   * Get opening name for current position
+   * Returns the opening name if position is in book, null otherwise
+   */
+  getOpeningName(): string | null {
+    return getOpeningName(this.position);
   }
 }

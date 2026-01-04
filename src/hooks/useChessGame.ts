@@ -21,6 +21,8 @@ export function useChessGame(initialDifficulty: number = 5) {
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [playingAsWhite, setPlayingAsWhite] = useState(true);
+  const [evaluation, setEvaluation] = useState(() => engine.getEvaluation());
+  const [openingName, setOpeningName] = useState<string | null>(() => engine.getOpeningName());
 
   // Update state after any move
   const updateState = useCallback(() => {
@@ -28,6 +30,8 @@ export function useChessGame(initialDifficulty: number = 5) {
     setGameState(engine.getGameState());
     setLegalMoves(engine.getLegalMovesUCI());
     setSelectedSquare(null);
+    setEvaluation(engine.getEvaluation());
+    setOpeningName(engine.getOpeningName());
   }, [engine]);
 
   // Make a move
@@ -105,5 +109,7 @@ export function useChessGame(initialDifficulty: number = 5) {
     changeDifficulty,
     sideToMove: engine.getSideToMove(),
     isInCheck: engine.isInCheck(),
+    evaluation,
+    openingName,
   };
 }
