@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ChessBoard } from '@/components/ChessBoard';
 import { useChessGame } from '@/hooks/useChessGame';
 
@@ -202,6 +203,12 @@ export default function Home() {
             {/* Game Controls */}
             <div className="bg-slate-800 rounded-lg p-6 space-y-3">
               <h2 className="text-2xl font-bold text-amber-400">Controls</h2>
+
+              <Link href="/lobby">
+                <button className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg font-semibold transition-all transform hover:scale-105">
+                  👥 Play Multiplayer
+                </button>
+              </Link>
 
               <button
                 onClick={resetGame}
