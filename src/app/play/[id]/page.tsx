@@ -23,28 +23,73 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
       try {
         const res = await fetch(`/api/games/${gameId}`);
         const gameData = await res.json();
-        setGame(gameData);
 
-        // Determine player color
+        console.log('Game data:', gameData);
+        console.log('Player name:', playerName);
+
+        // Generate a unique player ID using timestamp and random string
+        const uniquePlayerId = `${playerName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Store player ID in sessionStorage to maintain identity across page reloads
+        const storageKey = `player-${gameId}`;
+        const existingPlayerId = sessionStorage.getItem(storageKey);
+
+        console.log('Existing player ID from storage:', existingPlayerId);
+        console.log('Game whiteId:', gameData.whiteId);
+        console.log('Game blackId:', gameData.blackId);
+
+        // Determine player color based on existing assignments
+        if (existingPlayerId && (gameData.whiteId === existingPlayerId || gameData.blackId === existingPlayerId)) {
+          // Player has already joined this game - verify which color they are
+          if (gameData.whiteId === existingPlayerId) {
+            console.log('Already assigned as white');
+            setPlayerColor('white');
+            setGame(gameData);
+            setLoading(false);
+            return;
+          } else if (gameData.blackId === existingPlayerId) {
+            console.log('Already assigned as black');
+            setPlayerColor('black');
+            setGame(gameData);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Clear old sessionStorage if it doesn't match current game state
+        if (existingPlayerId) {
+          console.log('Clearing stale sessionStorage');
+          sessionStorage.removeItem(storageKey);
+        }
+
+        // Assign player to an open slot - strict order: white first, then black
         if (!gameData.whiteId) {
-          // Assign as white player
-          await fetch(`/api/games/${gameId}`, {
+          console.log('Assigning as white player');
+          sessionStorage.setItem(storageKey, uniquePlayerId);
+          const updateRes = await fetch(`/api/games/${gameId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ whiteId: playerName }),
+            body: JSON.stringify({ whiteId: uniquePlayerId }),
           });
+          const updatedGame = await updateRes.json();
+          setGame(updatedGame);
           setPlayerColor('white');
         } else if (!gameData.blackId) {
-          // Assign as black player
-          await fetch(`/api/games/${gameId}`, {
+          console.log('Assigning as black player (white is already taken)');
+          sessionStorage.setItem(storageKey, uniquePlayerId);
+          const updateRes = await fetch(`/api/games/${gameId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ blackId: playerName }),
+            body: JSON.stringify({ blackId: uniquePlayerId }),
           });
+          const updatedGame = await updateRes.json();
+          setGame(updatedGame);
           setPlayerColor('black');
         } else {
+          console.log('Both slots taken, spectating as white view');
           // Spectator mode - default to white view
           setPlayerColor('white');
+          setGame(gameData);
         }
       } catch (error) {
         console.error('Error fetching game:', error);

@@ -52,15 +52,23 @@ export default function LobbyPage() {
   const createGame = async () => {
     setCreating(true);
     try {
+      // Generate unique player ID for the creator
+      const uniquePlayerId = `${playerName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
       const res = await fetch('/api/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           timeControl: '10+0',
+          whiteId: uniquePlayerId, // Assign creator as white
         }),
       });
 
       const game = await res.json();
+
+      // Store the player ID in sessionStorage so they maintain their color
+      sessionStorage.setItem(`player-${game.id}`, uniquePlayerId);
+
       router.push(`/play/${game.id}?player=${playerName}`);
     } catch (error) {
       console.error('Error creating game:', error);
@@ -70,6 +78,17 @@ export default function LobbyPage() {
 
   const joinGame = (gameId: string) => {
     router.push(`/play/${gameId}?player=${playerName}`);
+  };
+
+  const deleteGame = async (gameId: string) => {
+    try {
+      await fetch(`/api/games/${gameId}`, {
+        method: 'DELETE',
+      });
+      fetchGames(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting game:', error);
+    }
   };
 
   const playVsAI = () => {
@@ -152,10 +171,10 @@ export default function LobbyPage() {
                       <div className="text-sm text-slate-300">
                         <div className="flex gap-6">
                           <span>
-                            ⚪ White: {game.whitePlayer?.name || 'Waiting...'}
+                            ⚪ White: {game.whiteId ? game.whiteId.split('-')[0] : 'Waiting...'}
                           </span>
                           <span>
-                            ⚫ Black: {game.blackPlayer?.name || 'Waiting...'}
+                            ⚫ Black: {game.blackId ? game.blackId.split('-')[0] : 'Waiting...'}
                           </span>
                         </div>
                       </div>
@@ -163,23 +182,41 @@ export default function LobbyPage() {
                         Created: {new Date(game.createdAt).toLocaleString()}
                       </div>
                     </div>
-                    <div>
+                    <div className="flex gap-2">
                       {game.status === 'waiting' && (
-                        <button
-                          onClick={() => joinGame(game.id)}
-                          disabled={!playerName.trim()}
-                          className="px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 rounded-lg font-bold transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Join Game
-                        </button>
+                        <>
+                          <button
+                            onClick={() => joinGame(game.id)}
+                            disabled={!playerName.trim()}
+                            className="px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 rounded-lg font-bold transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Join Game
+                          </button>
+                          <button
+                            onClick={() => deleteGame(game.id)}
+                            className="px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-bold transition-all"
+                            title="Delete game"
+                          >
+                            🗑️
+                          </button>
+                        </>
                       )}
                       {game.status === 'active' && (
-                        <button
-                          onClick={() => joinGame(game.id)}
-                          className="px-6 py-3 bg-slate-600 hover:bg-slate-500 rounded-lg font-bold transition-all"
-                        >
-                          Spectate
-                        </button>
+                        <>
+                          <button
+                            onClick={() => joinGame(game.id)}
+                            className="px-6 py-3 bg-slate-600 hover:bg-slate-500 rounded-lg font-bold transition-all"
+                          >
+                            Spectate
+                          </button>
+                          <button
+                            onClick={() => deleteGame(game.id)}
+                            className="px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-bold transition-all"
+                            title="Delete game"
+                          >
+                            🗑️
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

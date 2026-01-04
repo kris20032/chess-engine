@@ -10,14 +10,6 @@ export async function GET() {
           in: ['waiting', 'active'],
         },
       },
-      include: {
-        whitePlayer: {
-          select: { id: true, name: true, image: true },
-        },
-        blackPlayer: {
-          select: { id: true, name: true, image: true },
-        },
-      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -45,14 +37,6 @@ export async function POST(req: NextRequest) {
         blackId: blackId || null,
         timeControl: timeControl || null,
         status: whiteId && blackId ? 'active' : 'waiting',
-      },
-      include: {
-        whitePlayer: {
-          select: { id: true, name: true, image: true },
-        },
-        blackPlayer: {
-          select: { id: true, name: true, image: true },
-        },
       },
     });
 

@@ -4,8 +4,6 @@ const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
 const { PrismaClient } = require('./src/generated/prisma');
-const { PrismaLibSql } = require('@prisma/adapter-libsql');
-const { createClient } = require('@libsql/client');
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -14,13 +12,10 @@ const port = parseInt(process.env.PORT || '3000', 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-// Initialize Prisma Client with LibSQL adapter
-const libsql = createClient({
-  url: `file:${process.env.DATABASE_URL || './dev.db'}`
+// Initialize Prisma Client
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
 });
-
-const adapter = new PrismaLibSql(libsql);
-const prisma = new PrismaClient({ adapter });
 
 app.prepare().then(() => {
   const httpServer = createServer(async (req, res) => {

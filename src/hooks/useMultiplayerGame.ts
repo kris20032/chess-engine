@@ -33,16 +33,16 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     const newFen = engine.getFEN();
     setFen(newFen);
 
-    const status = engine.getGameStatus();
+    const gameState = engine.getGameState();
     const isInCheck = engine.isInCheck();
 
     setGameState({
-      status: status,
-      winner: status === 'checkmate' ? (engine.position.whiteToMove ? 'black' : 'white') : null,
+      status: gameState.status,
+      winner: gameState.winner,
       isCheck: isInCheck,
-      isCheckmate: status === 'checkmate',
-      isStalemate: status === 'stalemate',
-      isDraw: status.startsWith('draw_'),
+      isCheckmate: gameState.status === 'checkmate',
+      isStalemate: gameState.status === 'stalemate',
+      isDraw: gameState.status.startsWith('draw_'),
     });
   }, [engine]);
 
@@ -57,7 +57,7 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     socket.on('game_state', (game: any) => {
       console.log('Received game state:', game);
       if (game.fen) {
-        engine.setFEN(game.fen);
+        engine.setPosition(game.fen);
         updateState();
         setMoveCount(game.moves?.length || 0);
       }
@@ -67,7 +67,7 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     socket.on('move_made', (data: any) => {
       console.log('Opponent made move:', data);
       if (data.fen) {
-        engine.setFEN(data.fen);
+        engine.setPosition(data.fen);
         updateState();
         setMoveCount((prev) => prev + 1);
       }
@@ -98,14 +98,14 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     }
 
     setSelectedSquare(square);
-    const moves = engine.getLegalMoves();
+    const moves = engine.getLegalMovesUCI();
     const movesFromSquare = moves.filter((m: string) => m.startsWith(square));
     setLegalMoves(movesFromSquare);
   }, [selectedSquare, engine]);
 
   const makeMove = useCallback((from: string, to: string, promotion?: string): boolean => {
     // Check if it's this player's turn
-    const isWhiteTurn = engine.position.whiteToMove;
+    const isWhiteTurn = engine.getSideToMove() === 'white';
     const isPlayerTurn = (isWhiteTurn && playerColor === 'white') || (!isWhiteTurn && playerColor === 'black');
 
     if (!isPlayerTurn) {
@@ -138,13 +138,13 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
       setLegalMoves([]);
 
       // Check for game end
-      const status = engine.getGameStatus();
-      if (status !== 'ongoing') {
+      const gameStateCheck = engine.getGameState();
+      if (gameStateCheck.status !== 'ongoing') {
         socket.emit('end_game', {
           gameId,
           status: 'completed',
-          result: status === 'checkmate'
-            ? (engine.position.whiteToMove ? 'black_win' : 'white_win')
+          result: gameStateCheck.status === 'checkmate'
+            ? (gameStateCheck.winner === 'white' ? 'white_win' : 'black_win')
             : 'draw',
         });
       }
@@ -153,7 +153,7 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     return success;
   }, [engine, socket, gameId, playerColor, moveCount, updateState]);
 
-  const sideToMove = engine.position.whiteToMove ? 'white' : 'black';
+  const sideToMove = engine.getSideToMove();
   const isInCheck = engine.isInCheck();
   const isMyTurn = (sideToMove === 'white' && playerColor === 'white') ||
                    (sideToMove === 'black' && playerColor === 'black');

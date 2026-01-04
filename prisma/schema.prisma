@@ -8,6 +8,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -19,8 +20,6 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  gamesAsWhite Game[] @relation("WhitePlayer")
-  gamesAsBlack Game[] @relation("BlackPlayer")
   accounts     Account[]
   sessions     Session[]
 }
@@ -62,8 +61,8 @@ model VerificationToken {
 
 model Game {
   id          String   @id @default(cuid())
-  whiteId     String?
-  blackId     String?
+  whiteId     String?  // Simple string ID, not a foreign key
+  blackId     String?  // Simple string ID, not a foreign key
   fen         String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
   pgn         String   @default("")
   status      String   @default("waiting") // waiting, active, completed
@@ -72,8 +71,6 @@ model Game {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  whitePlayer User?  @relation("WhitePlayer", fields: [whiteId], references: [id])
-  blackPlayer User?  @relation("BlackPlayer", fields: [blackId], references: [id])
   moves       Move[]
 }
 

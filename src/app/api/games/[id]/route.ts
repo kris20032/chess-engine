@@ -15,12 +15,6 @@ export async function GET(
         moves: {
           orderBy: { moveNum: 'asc' },
         },
-        whitePlayer: {
-          select: { id: true, name: true, image: true },
-        },
-        blackPlayer: {
-          select: { id: true, name: true, image: true },
-        },
       },
     });
 
@@ -51,6 +45,18 @@ export async function PATCH(
     const body = await req.json();
     const { whiteId, blackId, status, result } = body;
 
+    // Get current game state
+    const currentGame = await prisma.game.findUnique({
+      where: { id },
+    });
+
+    if (!currentGame) {
+      return NextResponse.json(
+        { error: 'Game not found' },
+        { status: 404 }
+      );
+    }
+
     const updateData: any = {};
 
     if (whiteId !== undefined) updateData.whiteId = whiteId;
@@ -58,22 +64,17 @@ export async function PATCH(
     if (status !== undefined) updateData.status = status;
     if (result !== undefined) updateData.result = result;
 
-    // If both players are assigned, set status to active
-    if (whiteId && blackId && !status) {
+    // If both players are now assigned, set status to active
+    const finalWhiteId = whiteId !== undefined ? whiteId : currentGame.whiteId;
+    const finalBlackId = blackId !== undefined ? blackId : currentGame.blackId;
+
+    if (finalWhiteId && finalBlackId && currentGame.status === 'waiting' && !status) {
       updateData.status = 'active';
     }
 
     const game = await prisma.game.update({
       where: { id },
       data: updateData,
-      include: {
-        whitePlayer: {
-          select: { id: true, name: true, image: true },
-        },
-        blackPlayer: {
-          select: { id: true, name: true, image: true },
-        },
-      },
     });
 
     return NextResponse.json(game);
