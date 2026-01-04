@@ -31,11 +31,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { whiteId, blackId, timeControl } = body;
 
+    // Parse time control to set initial times
+    let whiteTimeLeft = null;
+    let blackTimeLeft = null;
+    if (timeControl) {
+      const [minutes] = timeControl.split('+').map(Number);
+      const seconds = minutes * 60;
+      whiteTimeLeft = seconds;
+      blackTimeLeft = seconds;
+    }
+
     const game = await prisma.game.create({
       data: {
         whiteId: whiteId || null,
         blackId: blackId || null,
         timeControl: timeControl || null,
+        whiteTimeLeft,
+        blackTimeLeft,
         status: whiteId && blackId ? 'active' : 'waiting',
       },
     });

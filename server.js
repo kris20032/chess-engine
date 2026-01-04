@@ -52,12 +52,6 @@ app.prepare().then(() => {
             moves: {
               orderBy: { moveNum: 'asc' },
             },
-            whitePlayer: {
-              select: { id: true, name: true, image: true },
-            },
-            blackPlayer: {
-              select: { id: true, name: true, image: true },
-            },
           },
         });
 

@@ -11,6 +11,17 @@ interface GameState {
   isDraw: boolean;
 }
 
+interface Move {
+  id: string;
+  moveNum: number;
+  from: string;
+  to: string;
+  promotion: string | null;
+  uci: string;
+  san: string | null;
+  fen: string;
+}
+
 export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black') {
   const [engine] = useState(() => new Engine());
   const [fen, setFen] = useState(engine.getFEN());
@@ -25,6 +36,7 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [legalMoves, setLegalMoves] = useState<string[]>([]);
   const [moveCount, setMoveCount] = useState(0);
+  const [moves, setMoves] = useState<Move[]>([]);
 
   const socket = getSocket();
 
@@ -60,6 +72,9 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
         engine.setPosition(game.fen);
         updateState();
         setMoveCount(game.moves?.length || 0);
+        if (game.moves) {
+          setMoves(game.moves);
+        }
       }
     });
 
@@ -70,6 +85,11 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
         engine.setPosition(data.fen);
         updateState();
         setMoveCount((prev) => prev + 1);
+
+        // Add the new move to history
+        if (data.move) {
+          setMoves((prev) => [...prev, data.move]);
+        }
       }
     });
 
@@ -168,5 +188,6 @@ export function useMultiplayerGame(gameId: string, playerColor: 'white' | 'black
     sideToMove,
     isInCheck,
     isMyTurn,
+    moves,
   };
 }

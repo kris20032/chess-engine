@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Game" ADD COLUMN "blackTimeLeft" INTEGER;
+ALTER TABLE "Game" ADD COLUMN "lastMoveTime" DATETIME;
+ALTER TABLE "Game" ADD COLUMN "whiteTimeLeft" INTEGER;

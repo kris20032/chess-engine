@@ -60,18 +60,21 @@ model VerificationToken {
 }
 
 model Game {
-  id          String   @id @default(cuid())
-  whiteId     String?  // Simple string ID, not a foreign key
-  blackId     String?  // Simple string ID, not a foreign key
-  fen         String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-  pgn         String   @default("")
-  status      String   @default("waiting") // waiting, active, completed
-  result      String?  // white_win, black_win, draw, abandoned
-  timeControl String?  // e.g., "10+0", "5+3"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  whiteId        String?  // Simple string ID, not a foreign key
+  blackId        String?  // Simple string ID, not a foreign key
+  fen            String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  pgn            String   @default("")
+  status         String   @default("waiting") // waiting, active, completed
+  result         String?  // white_win, black_win, draw, abandoned
+  timeControl    String?  // e.g., "10+0", "5+3"
+  whiteTimeLeft  Int?     // Time left in seconds for white
+  blackTimeLeft  Int?     // Time left in seconds for black
+  lastMoveTime   DateTime? // Timestamp of the last move
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  moves       Move[]
+  moves          Move[]
 }
 
 model Move {

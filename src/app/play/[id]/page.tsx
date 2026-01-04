@@ -3,6 +3,9 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChessBoard } from '@/components/ChessBoard';
+import { MoveHistory } from '@/components/MoveHistory';
+import { ChessClock } from '@/components/ChessClock';
+import { CapturedPieces } from '@/components/CapturedPieces';
 import { useSocket } from '@/hooks/useSocket';
 import { useMultiplayerGame } from '@/hooks/useMultiplayerGame';
 
@@ -16,6 +19,9 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
   const [playerColor, setPlayerColor] = useState<'white' | 'black' | null>(null);
   const [game, setGame] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [whiteTime, setWhiteTime] = useState<number>(600); // Default 10 minutes
+  const [blackTime, setBlackTime] = useState<number>(600);
+  const [timeIncrement, setTimeIncrement] = useState<number>(0);
 
   // Fetch game data and determine player color
   useEffect(() => {
@@ -101,6 +107,19 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
     fetchGame();
   }, [gameId, playerName]);
 
+  // Parse time control and initialize clocks
+  useEffect(() => {
+    if (!game?.timeControl) return;
+
+    // Parse time control format "10+0" or "5+3" (minutes+increment)
+    const [minutes, increment] = game.timeControl.split('+').map(Number);
+    const initialSeconds = minutes * 60;
+
+    setWhiteTime(game.whiteTimeLeft ?? initialSeconds);
+    setBlackTime(game.blackTimeLeft ?? initialSeconds);
+    setTimeIncrement(increment);
+  }, [game]);
+
   const {
     fen,
     gameState,
@@ -111,6 +130,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
     sideToMove,
     isInCheck,
     isMyTurn,
+    moves,
   } = useMultiplayerGame(gameId, playerColor || 'white');
 
   const getStatusMessage = () => {
@@ -153,6 +173,20 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
         <div className="grid lg:grid-cols-[1fr,auto] gap-8 items-start">
           {/* Chess Board */}
           <div className="order-2 lg:order-1">
+            {/* Opponent's Clock (top) */}
+            <div className="mb-4">
+              <ChessClock
+                initialTime={playerColor === 'black' ? whiteTime : blackTime}
+                increment={timeIncrement}
+                isActive={gameState.status === 'ongoing' && !isMyTurn}
+                playerColor={playerColor === 'black' ? 'white' : 'black'}
+                playerName={playerColor === 'black'
+                  ? (game?.whiteId?.split('-')[0] || 'Opponent')
+                  : (game?.blackId?.split('-')[0] || 'Opponent')
+                }
+              />
+            </div>
+
             <ChessBoard
               fen={fen}
               onMove={makeMove}
@@ -163,6 +197,17 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
               isInteractive={isMyTurn && gameState.status === 'ongoing'}
               isInCheck={isInCheck}
             />
+
+            {/* Player's Clock (bottom) */}
+            <div className="mt-4">
+              <ChessClock
+                initialTime={playerColor === 'white' ? whiteTime : blackTime}
+                increment={timeIncrement}
+                isActive={gameState.status === 'ongoing' && isMyTurn}
+                playerColor={playerColor || 'white'}
+                playerName={playerName}
+              />
+            </div>
 
             {/* Status Bar */}
             <div className="mt-4 p-4 bg-slate-800 rounded-lg text-center">
@@ -239,6 +284,16 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                   </span>
                 </div>
               </div>
+
+              {/* Captured Pieces */}
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <h4 className="text-sm font-semibold text-slate-400 mb-3">Captured Pieces</h4>
+                <CapturedPieces fen={fen} playerColor={playerColor || 'white'} />
+              </div>
+            </div>
+
+            <div className="h-96">
+              <MoveHistory moves={moves} />
             </div>
 
             <div className="bg-slate-800 rounded-xl p-6 border-2 border-slate-700">
