@@ -12,6 +12,7 @@ import { makeMove, unmakeMove, generateLegalMoves } from './makemove';
 import { getGameState } from './gamestate';
 import { isCapture, getFromSquare, getToSquare } from './move';
 import { globalTT, TTEntryType } from './transposition';
+import { probeBook } from './openingbook';
 
 // Search constants
 const MATE_SCORE = 100000;
@@ -299,6 +300,12 @@ export function searchPosition(
  * Get best move for a position at given depth
  */
 export function getBestMove(position: Position, depth: number): Move | null {
+  // Check opening book first
+  const bookMove = probeBook(position);
+  if (bookMove !== null) {
+    return bookMove;
+  }
+
   const stats = searchPosition(position, depth);
   return stats.bestMove;
 }
@@ -307,6 +314,12 @@ export function getBestMove(position: Position, depth: number): Move | null {
  * Get best move with time limit
  */
 export function getBestMoveWithTime(position: Position, timeMs: number): Move | null {
+  // Check opening book first
+  const bookMove = probeBook(position);
+  if (bookMove !== null) {
+    return bookMove;
+  }
+
   const stats = searchPosition(position, 100, timeMs); // Max depth 100
   return stats.bestMove;
 }

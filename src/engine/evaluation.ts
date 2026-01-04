@@ -7,7 +7,7 @@
 
 import { Position } from './position';
 import { PIECE_INDEX } from '@/types/chess';
-import { getSquares, rankOf, fileOf } from './bitboard';
+import { rankOf, fileOf } from './bitboard';
 
 // Material values in centipawns
 export const PIECE_VALUES = {
@@ -130,6 +130,19 @@ function getPieceSquareValue(pieceIndex: number, square: number, isEndgame: bool
 }
 
 /**
+ * Count bits in a bitboard
+ */
+function popCount(bb: bigint): number {
+  let count = 0;
+  let copy = bb;
+  while (copy !== 0n) {
+    copy &= copy - 1n;
+    count++;
+  }
+  return count;
+}
+
+/**
  * Determine if position is in endgame phase
  * Simple heuristic: endgame if queens are off or very little material
  */
@@ -142,15 +155,28 @@ function isEndgame(position: Position): boolean {
     return true;
   }
 
-  // Count total non-pawn, non-king material
+  // Count total non-pawn, non-king material using popCount
   let material = 0;
   for (let i = 1; i < 5; i++) { // Knights, Bishops, Rooks, Queens
-    material += getSquares(position.bitboards[i]).length;
-    material += getSquares(position.bitboards[i + 6]).length;
+    material += popCount(position.bitboards[i]);
+    material += popCount(position.bitboards[i + 6]);
   }
 
   // Endgame if total pieces (excluding pawns and kings) <= 6
   return material <= 6;
+}
+
+/**
+ * Bit scan forward - find index of least significant bit
+ */
+function bitScanForward(bb: bigint): number {
+  let sq = 0;
+  let copy = bb;
+  while ((copy & 1n) === 0n) {
+    copy >>= 1n;
+    sq++;
+  }
+  return sq;
 }
 
 /**
@@ -171,21 +197,25 @@ export function evaluate(position: Position): number {
     PIECE_VALUES.KING,
   ];
 
-  // Evaluate white pieces
+  // Evaluate white pieces - iterate directly over bitboards
   for (let i = 0; i < 6; i++) {
-    const squares = getSquares(position.bitboards[i]);
-    for (const sq of squares) {
+    let bb = position.bitboards[i];
+    while (bb !== 0n) {
+      const sq = bitScanForward(bb);
       score += pieceValues[i];
       score += getPieceSquareValue(i, sq, endgame);
+      bb &= bb - 1n; // Clear least significant bit
     }
   }
 
-  // Evaluate black pieces
+  // Evaluate black pieces - iterate directly over bitboards
   for (let i = 6; i < 12; i++) {
-    const squares = getSquares(position.bitboards[i]);
-    for (const sq of squares) {
+    let bb = position.bitboards[i];
+    while (bb !== 0n) {
+      const sq = bitScanForward(bb);
       score -= pieceValues[i - 6];
       score -= getPieceSquareValue(i, sq, endgame);
+      bb &= bb - 1n; // Clear least significant bit
     }
   }
 
