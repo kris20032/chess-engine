@@ -33,9 +33,17 @@ export default function LobbyPage() {
     try {
       const res = await fetch('/api/games');
       const data = await res.json();
-      setGames(data);
+
+      // Check if the response is an array
+      if (Array.isArray(data)) {
+        setGames(data);
+      } else {
+        console.error('Invalid response from API:', data);
+        setGames([]);
+      }
     } catch (error) {
       console.error('Error fetching games:', error);
+      setGames([]);
     } finally {
       setLoading(false);
     }
