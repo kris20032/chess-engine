@@ -9,7 +9,11 @@ export function useSocket() {
   useEffect(() => {
     // Initialize socket if not already created
     if (!socket) {
-      socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000', {
+      // Use environment variable, or default to current origin for production
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL ||
+        (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+
+      socket = io(socketUrl, {
         transports: ['websocket', 'polling'],
       });
     }
