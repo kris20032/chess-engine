@@ -18,28 +18,24 @@ steps:
 
   # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - 'run'
-      - 'deploy'
-      - 'chess-engine'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/chess-engine:latest'
-      - '--region'
-      - 'europe-west1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--port'
-      - '8080'
-      - '--memory'
-      - '512Mi'
-      - '--cpu'
-      - '1'
-      - '--max-instances'
-      - '10'
-      - '--set-env-vars'
-      - 'NODE_ENV=production,DATABASE_URL=file:/tmp/chess.db'
+      - '-c'
+      - |
+        gcloud run deploy chess-engine \
+          --image=gcr.io/$PROJECT_ID/chess-engine:latest \
+          --region=europe-west1 \
+          --platform=managed \
+          --allow-unauthenticated \
+          --port=8080 \
+          --memory=512Mi \
+          --cpu=1 \
+          --max-instances=10 \
+          --timeout=300 \
+          --set-env-vars=NODE_ENV=production \
+          --update-secrets=DATABASE_URL=DATABASE_URL:latest \
+          --add-cloudsql-instances=$PROJECT_ID:europe-west1:chess-db \
+          --project=$PROJECT_ID
 
 images:
   - 'gcr.io/$PROJECT_ID/chess-engine:latest'
