@@ -23,7 +23,6 @@ export default function Home() {
     isInCheck,
     evaluation,
     openingName,
-    // Move navigation
     moveHistory,
     currentMoveIndex,
     isReviewMode,
@@ -37,31 +36,6 @@ export default function Home() {
     setSelectedSquare(square);
   };
 
-  const getStatusMessage = () => {
-    if (gameState.status === 'checkmate') {
-      return `Checkmate! ${gameState.winner === 'white' ? 'White' : 'Black'} wins!`;
-    }
-    if (gameState.status === 'stalemate') {
-      return 'Stalemate! Game is a draw.';
-    }
-    if (gameState.status === 'draw_insufficient_material') {
-      return 'Draw by insufficient material.';
-    }
-    if (gameState.status === 'draw_fifty_move') {
-      return 'Draw by fifty-move rule.';
-    }
-    if (gameState.status === 'draw_repetition') {
-      return 'Draw by threefold repetition.';
-    }
-    if (isInCheck) {
-      return `${sideToMove === 'white' ? 'White' : 'Black'} is in check!`;
-    }
-    if (isAIThinking) {
-      return 'AI is thinking...';
-    }
-    return `${sideToMove === 'white' ? 'White' : 'Black'} to move`;
-  };
-
   const getDifficultyName = (diff: number) => {
     if (diff <= 2) return 'Beginner';
     if (diff <= 4) return 'Intermediate';
@@ -71,278 +45,290 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 sm:p-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-2 bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-            Chess Master
-          </h1>
-          <p className="text-slate-400">Professional Chess Engine with AI Opponent</p>
-        </header>
+    <div className="min-h-screen bg-[#312e2b] text-white">
+      {/* Top Navigation Bar */}
+      <nav className="bg-[#262421] border-b border-[#3d3a36] px-6 py-3">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-bold text-white">♔ Chess Master</h1>
+            <Link href="/lobby">
+              <button className="px-4 py-1.5 bg-[#81b64c] hover:bg-[#6d9940] rounded text-white text-sm font-semibold transition-colors">
+                Play Multiplayer
+              </button>
+            </Link>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={flipBoard}
+              className="px-3 py-1.5 bg-[#54524f] hover:bg-[#6a6762] rounded text-white text-sm font-medium transition-colors"
+            >
+              ⟲ Flip
+            </button>
+            <button
+              onClick={resetGame}
+              className="px-4 py-1.5 bg-[#7fa650] hover:bg-[#6d8f44] rounded text-white text-sm font-semibold transition-colors"
+            >
+              New Game
+            </button>
+          </div>
+        </div>
+      </nav>
 
-        <div className="grid lg:grid-cols-[1fr,auto] gap-8 items-start">
-          {/* Chess Board */}
-          <div className="order-2 lg:order-1">
-            <ChessBoard
-              fen={fen}
-              onMove={makeMove}
-              selectedSquare={selectedSquare}
-              onSquareClick={handleSquareClick}
-              legalMoves={legalMoves}
-              flipped={!playingAsWhite}
-              isInteractive={!isAIThinking && gameState.status === 'ongoing'}
-              isInCheck={isInCheck}
-            />
-
-            {/* Evaluation Bar */}
-            <div className="mt-4">
-              <EvaluationBar score={evaluation} openingName={openingName} />
-            </div>
-
-            {/* Status Bar */}
-            <div className="mt-4 p-4 bg-slate-800 rounded-lg text-center">
-              <div className="text-xl font-semibold">
-                {getStatusMessage()}
+      <div className="max-w-[1600px] mx-auto p-6">
+        <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+          {/* Left Column: Game Board */}
+          <div className="flex flex-col gap-4">
+            {/* Top Player Card */}
+            <div className="bg-[#262421] rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#3c3a37] flex items-center justify-center text-xl">
+                  🤖
+                </div>
+                <div>
+                  <div className="font-semibold text-white">AI Opponent</div>
+                  <div className="text-xs text-[#a8a29e]">{getDifficultyName(difficulty)} • Level {difficulty}</div>
+                </div>
               </div>
+              {!playingAsWhite && sideToMove === 'black' && gameState.status === 'ongoing' && (
+                <div className="flex items-center gap-2">
+                  {isAIThinking && <div className="text-xs text-[#81b64c] animate-pulse">Thinking...</div>}
+                  <div className="w-2 h-2 rounded-full bg-[#81b64c] animate-pulse"></div>
+                </div>
+              )}
             </div>
 
-            {/* Game Over Banner */}
-            {gameState.status !== 'ongoing' && (
-              <div className="mt-4 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-6 rounded-2xl shadow-2xl border-4 border-amber-500 animate-in fade-in duration-300">
-                {gameState.status === 'checkmate' && (
-                  <>
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                      <div className="text-5xl animate-bounce">
-                        {gameState.winner === (playingAsWhite ? 'white' : 'black') ? '🎉' : '😢'}
+            {/* Chess Board with Evaluation Bar */}
+            <div className="bg-[#262421] rounded-lg p-4 relative">
+              <div className="flex gap-3">
+                <div className="w-8">
+                  <EvaluationBar score={evaluation} openingName={openingName} />
+                </div>
+                <div className="flex-1">
+                  <ChessBoard
+                    fen={fen}
+                    onMove={makeMove}
+                    selectedSquare={selectedSquare}
+                    onSquareClick={handleSquareClick}
+                    legalMoves={legalMoves}
+                    flipped={!playingAsWhite}
+                    isInteractive={!isAIThinking && gameState.status === 'ongoing' && !isReviewMode}
+                    isInCheck={isInCheck}
+                  />
+                </div>
+              </div>
+
+              {/* Game Status Overlay */}
+              {gameState.status !== 'ongoing' && (
+                <div className="absolute inset-0 bg-black/70 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                  <div className="bg-[#262421] rounded-xl p-8 max-w-sm mx-4 border-2 border-[#81b64c]">
+                    <div className="text-center space-y-4">
+                      <div className="text-5xl">
+                        {gameState.status === 'checkmate'
+                          ? (gameState.winner === (playingAsWhite ? 'white' : 'black') ? '🏆' : '💔')
+                          : '🤝'}
                       </div>
                       <div>
-                        <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                          {gameState.winner === (playingAsWhite ? 'white' : 'black') ? 'You Won!' : 'You Lost!'}
+                        <h2 className="text-2xl font-bold text-white mb-2">
+                          {gameState.status === 'checkmate'
+                            ? (gameState.winner === (playingAsWhite ? 'white' : 'black') ? 'Victory!' : 'Defeat')
+                            : 'Draw'}
                         </h2>
-                        <p className="text-lg text-slate-300">
-                          Checkmate! {gameState.winner === 'white' ? 'White' : 'Black'} wins!
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-                {gameState.status === 'stalemate' && (
-                  <>
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                      <div className="text-5xl">🤝</div>
-                      <div>
-                        <h2 className="text-3xl font-bold text-amber-400">
-                          Stalemate!
-                        </h2>
-                        <p className="text-lg text-slate-300">
-                          The game is a draw.
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-                {(gameState.status === 'draw_insufficient_material' ||
-                  gameState.status === 'draw_fifty_move' ||
-                  gameState.status === 'draw_repetition') && (
-                  <>
-                    <div className="flex items-center justify-center gap-4 mb-4">
-                      <div className="text-5xl">🤝</div>
-                      <div>
-                        <h2 className="text-3xl font-bold text-amber-400">
-                          Draw!
-                        </h2>
-                        <p className="text-lg text-slate-300">
+                        <p className="text-sm text-[#a8a29e]">
+                          {gameState.status === 'checkmate' && `${gameState.winner === 'white' ? 'White' : 'Black'} wins by checkmate`}
+                          {gameState.status === 'stalemate' && 'Stalemate'}
                           {gameState.status === 'draw_insufficient_material' && 'Insufficient material'}
                           {gameState.status === 'draw_fifty_move' && 'Fifty-move rule'}
                           {gameState.status === 'draw_repetition' && 'Threefold repetition'}
                         </p>
                       </div>
+                      <button
+                        onClick={resetGame}
+                        className="w-full py-3 px-6 bg-[#81b64c] hover:bg-[#6d9940] rounded-lg font-semibold transition-colors"
+                      >
+                        Play Again
+                      </button>
                     </div>
-                  </>
-                )}
-                <div className="flex gap-3">
-                  <button
-                    onClick={resetGame}
-                    className="flex-1 py-3 px-5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl font-bold text-base transition-all transform hover:scale-105 active:scale-95"
-                  >
-                    New Game
-                  </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Controls Panel */}
-          <div className="order-1 lg:order-2 lg:w-80 space-y-6">
-            {/* Game Info */}
-            <div className="bg-slate-800 rounded-lg p-6 space-y-4">
-              <h2 className="text-2xl font-bold text-amber-400">Game Info</h2>
-
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Playing as:</span>
-                  <span className="font-semibold">{playingAsWhite ? 'White' : 'Black'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Turn:</span>
-                  <span className="font-semibold">{sideToMove === 'white' ? 'White' : 'Black'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Status:</span>
-                  <span className={`font-semibold ${isInCheck ? 'text-red-400' : 'text-green-400'}`}>
-                    {isInCheck ? 'Check' : 'Normal'}
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Difficulty Control */}
-            <div className="bg-slate-800 rounded-lg p-6 space-y-4">
-              <h2 className="text-2xl font-bold text-amber-400">AI Difficulty</h2>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Level:</span>
-                  <span className="font-semibold">{difficulty} - {getDifficultyName(difficulty)}</span>
+            {/* Bottom Player Card */}
+            <div className="bg-[#262421] rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#3c3a37] flex items-center justify-center text-xl">
+                  👤
                 </div>
+                <div>
+                  <div className="font-semibold text-white">You</div>
+                  <div className="text-xs text-[#a8a29e]">Human Player</div>
+                </div>
+              </div>
+              {playingAsWhite && sideToMove === 'white' && gameState.status === 'ongoing' && (
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-[#a8a29e]">Your turn</div>
+                  <div className="w-2 h-2 rounded-full bg-[#81b64c] animate-pulse"></div>
+                </div>
+              )}
+            </div>
+          </div>
 
+          {/* Right Column: Move History & Controls */}
+          <div className="space-y-4">
+            {/* AI Difficulty Card */}
+            <div className="bg-[#262421] rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-[#a8a29e] mb-3">AI Difficulty</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-white font-medium">{getDifficultyName(difficulty)}</span>
+                  <span className="text-xs text-[#a8a29e]">Level {difficulty}/10</span>
+                </div>
                 <input
                   type="range"
                   min="1"
                   max="10"
                   value={difficulty}
                   onChange={(e) => changeDifficulty(parseInt(e.target.value))}
-                  className="w-full accent-amber-500"
+                  className="w-full h-2 bg-[#3d3a36] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#81b64c]"
                 />
-
-                <div className="flex justify-between text-xs text-slate-500">
-                  <span>Easy</span>
-                  <span>Hard</span>
+                <div className="flex justify-between text-[10px] text-[#6f6c67]">
+                  <span>Beginner</span>
+                  <span>Master</span>
                 </div>
               </div>
-
-              <p className="text-sm text-slate-400">
-                Higher difficulty means deeper search (stronger AI)
-              </p>
-            </div>
-
-            {/* Game Controls */}
-            <div className="bg-slate-800 rounded-lg p-6 space-y-3">
-              <h2 className="text-2xl font-bold text-amber-400">Controls</h2>
-
-              <Link href="/lobby">
-                <button className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg font-semibold transition-all transform hover:scale-105">
-                  👥 Play Multiplayer
-                </button>
-              </Link>
-
-              <button
-                onClick={resetGame}
-                className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg font-semibold transition-all transform hover:scale-105"
-              >
-                New Game
-              </button>
-
-              <button
-                onClick={flipBoard}
-                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg font-semibold transition-all transform hover:scale-105"
-              >
-                Flip Board
-              </button>
             </div>
 
             {/* Move Navigation */}
-            <div className="bg-slate-800 rounded-lg p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-amber-400">Move History</h2>
+            <div className="bg-[#262421] rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-[#a8a29e]">Moves</h3>
                 {isReviewMode && (
                   <button
                     onClick={goToLatest}
-                    className="px-3 py-1 bg-amber-600 hover:bg-amber-700 rounded-lg text-sm font-semibold transition-all"
+                    className="text-xs px-2 py-1 bg-[#81b64c] hover:bg-[#6d9940] rounded text-white font-medium transition-colors"
                   >
                     Latest
                   </button>
                 )}
               </div>
 
-              {/* Navigation Controls */}
-              <div className="flex gap-2">
+              {/* Navigation Buttons */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <button
+                  onClick={() => navigateToMove(0)}
+                  disabled={currentMoveIndex === 0}
+                  className="p-2 bg-[#3d3a36] hover:bg-[#54524f] disabled:bg-[#2a2826] disabled:text-[#54524f] rounded text-white text-xs transition-colors disabled:cursor-not-allowed"
+                  title="First move"
+                >
+                  ⟪
+                </button>
                 <button
                   onClick={goBackMove}
                   disabled={currentMoveIndex === 0}
-                  className="flex-1 py-2 px-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
-                  title="Previous move (←)"
+                  className="p-2 bg-[#3d3a36] hover:bg-[#54524f] disabled:bg-[#2a2826] disabled:text-[#54524f] rounded text-white text-xs transition-colors disabled:cursor-not-allowed"
+                  title="Previous (←)"
                 >
-                  ← Back
+                  ‹
                 </button>
                 <button
                   onClick={goForwardMove}
                   disabled={currentMoveIndex === moveHistory.length - 1}
-                  className="flex-1 py-2 px-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
-                  title="Next move (→)"
+                  className="p-2 bg-[#3d3a36] hover:bg-[#54524f] disabled:bg-[#2a2826] disabled:text-[#54524f] rounded text-white text-xs transition-colors disabled:cursor-not-allowed"
+                  title="Next (→)"
                 >
-                  Forward →
+                  ›
+                </button>
+                <button
+                  onClick={goToLatest}
+                  disabled={currentMoveIndex === moveHistory.length - 1}
+                  className="p-2 bg-[#3d3a36] hover:bg-[#54524f] disabled:bg-[#2a2826] disabled:text-[#54524f] rounded text-white text-xs transition-colors disabled:cursor-not-allowed"
+                  title="Last move"
+                >
+                  ⟫
                 </button>
               </div>
 
               {/* Move List */}
-              <div className="bg-slate-900 rounded-lg p-3 max-h-64 overflow-y-auto">
-                <div className="space-y-1">
-                  {moveHistory.map((entry, index) => {
-                    if (index === 0) return null; // Skip starting position
-                    const moveNumber = Math.ceil(index / 2);
-                    const isWhiteMove = index % 2 === 1;
-                    const isCurrent = index === currentMoveIndex;
-
-                    return (
-                      <div
-                        key={index}
-                        onClick={() => navigateToMove(index)}
-                        className={`px-2 py-1 rounded cursor-pointer transition-all ${
-                          isCurrent
-                            ? 'bg-amber-600 text-white font-bold'
-                            : 'hover:bg-slate-700 text-slate-300'
-                        }`}
-                      >
-                        <span className="text-slate-400 text-sm mr-2">
-                          {isWhiteMove ? `${moveNumber}.` : ''}
-                        </span>
-                        <span className="font-mono text-sm">
-                          {entry.san}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {moveHistory.length === 1 && (
-                    <div className="text-center text-slate-500 text-sm py-2">
+              <div className="bg-[#1a1816] rounded p-3 max-h-[500px] overflow-y-auto">
+                <div className="grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-1 text-sm">
+                  {moveHistory.length === 1 ? (
+                    <div className="col-span-3 text-center text-[#6f6c67] text-xs py-4">
                       No moves yet
                     </div>
+                  ) : (
+                    moveHistory.slice(1).map((entry, index) => {
+                      const realIndex = index + 1;
+                      const moveNumber = Math.ceil(realIndex / 2);
+                      const isWhiteMove = realIndex % 2 === 1;
+                      const isCurrent = realIndex === currentMoveIndex;
+
+                      if (isWhiteMove) {
+                        const blackMove = moveHistory[realIndex + 1];
+                        return (
+                          <div key={realIndex} className="contents">
+                            <div className="text-[#6f6c67] text-xs py-1">{moveNumber}.</div>
+                            <div
+                              onClick={() => navigateToMove(realIndex)}
+                              className={`py-1 px-2 rounded cursor-pointer font-mono text-xs ${
+                                isCurrent ? 'bg-[#81b64c] text-white font-semibold' : 'hover:bg-[#2a2826] text-[#e4e1dd]'
+                              }`}
+                            >
+                              {entry.san}
+                            </div>
+                            {blackMove ? (
+                              <div
+                                onClick={() => navigateToMove(realIndex + 1)}
+                                className={`py-1 px-2 rounded cursor-pointer font-mono text-xs ${
+                                  currentMoveIndex === realIndex + 1 ? 'bg-[#81b64c] text-white font-semibold' : 'hover:bg-[#2a2826] text-[#e4e1dd]'
+                                }`}
+                              >
+                                {blackMove.san}
+                              </div>
+                            ) : (
+                              <div></div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })
                   )}
                 </div>
               </div>
 
-              <div className="text-xs text-slate-400 text-center">
+              <div className="mt-2 text-[10px] text-center text-[#6f6c67]">
                 Use ← → arrow keys to navigate
               </div>
             </div>
 
-            {/* Instructions */}
-            <div className="bg-slate-800 rounded-lg p-6 space-y-2">
-              <h2 className="text-xl font-bold text-amber-400">How to Play</h2>
-              <ul className="text-sm text-slate-300 space-y-2">
-                <li>• Click or drag pieces to move</li>
-                <li>• Green highlights show legal moves</li>
-                <li>• AI automatically responds to your moves</li>
-                <li>• Adjust difficulty for stronger AI</li>
-              </ul>
+            {/* Game Info */}
+            <div className="bg-[#262421] rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-[#a8a29e] mb-3">Game Info</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[#a8a29e]">You are:</span>
+                  <span className="text-white font-medium">{playingAsWhite ? 'White' : 'Black'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#a8a29e]">To move:</span>
+                  <span className="text-white font-medium">{sideToMove === 'white' ? 'White' : 'Black'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#a8a29e]">Status:</span>
+                  <span className={`font-medium ${isInCheck ? 'text-red-400' : 'text-[#81b64c]'}`}>
+                    {isInCheck ? 'Check!' : 'Normal'}
+                  </span>
+                </div>
+                {openingName && (
+                  <div className="flex justify-between">
+                    <span className="text-[#a8a29e]">Opening:</span>
+                    <span className="text-white font-medium text-xs text-right max-w-[180px]">{openingName}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="mt-12 text-center text-slate-500 text-sm">
-          <p>Built with Next.js 14+ | Bitboard Chess Engine | Negamax AI</p>
-        </footer>
       </div>
     </div>
   );
