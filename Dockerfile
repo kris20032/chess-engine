@@ -18,10 +18,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Set Node options for build (increase memory limit)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Create a dummy DATABASE_URL for build time (Prisma needs it)
+ENV DATABASE_URL="file:./dev.db"
+
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Build Next.js application
+# Build Next.js application (set standalone output)
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Production image, copy all the files and run next
