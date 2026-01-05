@@ -23,6 +23,14 @@ export default function Home() {
     isInCheck,
     evaluation,
     openingName,
+    // Move navigation
+    moveHistory,
+    currentMoveIndex,
+    isReviewMode,
+    goBackMove,
+    goForwardMove,
+    goToLatest,
+    navigateToMove,
   } = useChessGame(3);
 
   const handleSquareClick = (square: string) => {
@@ -98,57 +106,67 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Game Over Modal */}
+            {/* Game Over Banner */}
             {gameState.status !== 'ongoing' && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm z-50 animate-in fade-in duration-300">
-                <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-10 rounded-3xl shadow-2xl border-4 border-amber-500 max-w-md w-full mx-4 animate-in zoom-in-95 duration-500">
-                  {gameState.status === 'checkmate' && (
-                    <>
-                      <div className="text-6xl text-center mb-6 animate-bounce">
+              <div className="mt-4 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-6 rounded-2xl shadow-2xl border-4 border-amber-500 animate-in fade-in duration-300">
+                {gameState.status === 'checkmate' && (
+                  <>
+                    <div className="flex items-center justify-center gap-4 mb-4">
+                      <div className="text-5xl animate-bounce">
                         {gameState.winner === (playingAsWhite ? 'white' : 'black') ? '🎉' : '😢'}
                       </div>
-                      <h2 className="text-4xl font-bold text-center mb-4 bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                        {gameState.winner === (playingAsWhite ? 'white' : 'black') ? 'You Won!' : 'You Lost!'}
-                      </h2>
-                      <p className="text-xl text-center text-slate-300 mb-8">
-                        Checkmate! {gameState.winner === 'white' ? 'White' : 'Black'} wins!
-                      </p>
-                    </>
-                  )}
-                  {gameState.status === 'stalemate' && (
-                    <>
-                      <div className="text-6xl text-center mb-6">🤝</div>
-                      <h2 className="text-4xl font-bold text-center mb-4 text-amber-400">
-                        Stalemate!
-                      </h2>
-                      <p className="text-xl text-center text-slate-300 mb-8">
-                        The game is a draw.
-                      </p>
-                    </>
-                  )}
-                  {(gameState.status === 'draw_insufficient_material' ||
-                    gameState.status === 'draw_fifty_move' ||
-                    gameState.status === 'draw_repetition') && (
-                    <>
-                      <div className="text-6xl text-center mb-6">🤝</div>
-                      <h2 className="text-4xl font-bold text-center mb-4 text-amber-400">
-                        Draw!
-                      </h2>
-                      <p className="text-xl text-center text-slate-300 mb-8">
-                        {gameState.status === 'draw_insufficient_material' && 'Insufficient material'}
-                        {gameState.status === 'draw_fifty_move' && 'Fifty-move rule'}
-                        {gameState.status === 'draw_repetition' && 'Threefold repetition'}
-                      </p>
-                    </>
-                  )}
-                  <div className="flex gap-4">
-                    <button
-                      onClick={resetGame}
-                      className="flex-1 py-4 px-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl font-bold text-lg transition-all transform hover:scale-105 active:scale-95"
-                    >
-                      New Game
-                    </button>
-                  </div>
+                      <div>
+                        <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
+                          {gameState.winner === (playingAsWhite ? 'white' : 'black') ? 'You Won!' : 'You Lost!'}
+                        </h2>
+                        <p className="text-lg text-slate-300">
+                          Checkmate! {gameState.winner === 'white' ? 'White' : 'Black'} wins!
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {gameState.status === 'stalemate' && (
+                  <>
+                    <div className="flex items-center justify-center gap-4 mb-4">
+                      <div className="text-5xl">🤝</div>
+                      <div>
+                        <h2 className="text-3xl font-bold text-amber-400">
+                          Stalemate!
+                        </h2>
+                        <p className="text-lg text-slate-300">
+                          The game is a draw.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {(gameState.status === 'draw_insufficient_material' ||
+                  gameState.status === 'draw_fifty_move' ||
+                  gameState.status === 'draw_repetition') && (
+                  <>
+                    <div className="flex items-center justify-center gap-4 mb-4">
+                      <div className="text-5xl">🤝</div>
+                      <div>
+                        <h2 className="text-3xl font-bold text-amber-400">
+                          Draw!
+                        </h2>
+                        <p className="text-lg text-slate-300">
+                          {gameState.status === 'draw_insufficient_material' && 'Insufficient material'}
+                          {gameState.status === 'draw_fifty_move' && 'Fifty-move rule'}
+                          {gameState.status === 'draw_repetition' && 'Threefold repetition'}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    onClick={resetGame}
+                    className="flex-1 py-3 px-5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl font-bold text-base transition-all transform hover:scale-105 active:scale-95"
+                  >
+                    New Game
+                  </button>
                 </div>
               </div>
             )}
@@ -231,6 +249,81 @@ export default function Home() {
               >
                 Flip Board
               </button>
+            </div>
+
+            {/* Move Navigation */}
+            <div className="bg-slate-800 rounded-lg p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-amber-400">Move History</h2>
+                {isReviewMode && (
+                  <button
+                    onClick={goToLatest}
+                    className="px-3 py-1 bg-amber-600 hover:bg-amber-700 rounded-lg text-sm font-semibold transition-all"
+                  >
+                    Latest
+                  </button>
+                )}
+              </div>
+
+              {/* Navigation Controls */}
+              <div className="flex gap-2">
+                <button
+                  onClick={goBackMove}
+                  disabled={currentMoveIndex === 0}
+                  className="flex-1 py-2 px-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
+                  title="Previous move (←)"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={goForwardMove}
+                  disabled={currentMoveIndex === moveHistory.length - 1}
+                  className="flex-1 py-2 px-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 rounded-lg font-semibold transition-all disabled:cursor-not-allowed"
+                  title="Next move (→)"
+                >
+                  Forward →
+                </button>
+              </div>
+
+              {/* Move List */}
+              <div className="bg-slate-900 rounded-lg p-3 max-h-64 overflow-y-auto">
+                <div className="space-y-1">
+                  {moveHistory.map((entry, index) => {
+                    if (index === 0) return null; // Skip starting position
+                    const moveNumber = Math.ceil(index / 2);
+                    const isWhiteMove = index % 2 === 1;
+                    const isCurrent = index === currentMoveIndex;
+
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => navigateToMove(index)}
+                        className={`px-2 py-1 rounded cursor-pointer transition-all ${
+                          isCurrent
+                            ? 'bg-amber-600 text-white font-bold'
+                            : 'hover:bg-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <span className="text-slate-400 text-sm mr-2">
+                          {isWhiteMove ? `${moveNumber}.` : ''}
+                        </span>
+                        <span className="font-mono text-sm">
+                          {entry.san}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {moveHistory.length === 1 && (
+                    <div className="text-center text-slate-500 text-sm py-2">
+                      No moves yet
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-400 text-center">
+                Use ← → arrow keys to navigate
+              </div>
             </div>
 
             {/* Instructions */}

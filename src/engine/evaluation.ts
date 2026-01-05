@@ -201,7 +201,7 @@ export function evaluate(position: Position): number {
   for (let i = 0; i < 6; i++) {
     let bb = position.bitboards[i];
     while (bb !== 0n) {
-      const sq = bitScanForward(bb);
+      const sq = Number(bitScanForward(bb));
       score += pieceValues[i];
       score += getPieceSquareValue(i, sq, endgame);
       bb &= bb - 1n; // Clear least significant bit
@@ -212,7 +212,7 @@ export function evaluate(position: Position): number {
   for (let i = 6; i < 12; i++) {
     let bb = position.bitboards[i];
     while (bb !== 0n) {
-      const sq = bitScanForward(bb);
+      const sq = Number(bitScanForward(bb));
       score -= pieceValues[i - 6];
       score -= getPieceSquareValue(i, sq, endgame);
       bb &= bb - 1n; // Clear least significant bit

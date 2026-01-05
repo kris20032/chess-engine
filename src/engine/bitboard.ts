@@ -87,8 +87,8 @@ export function bitScanForward(bb: bigint): number {
   // Simple bit scanning - more reliable than De Bruijn for our use case
   let sq = 0;
   let copy = bb;
-  while ((copy & BigInt(1)) === BigInt(0) && sq < 64) {
-    copy >>= BigInt(1);
+  while ((copy & 1n) === 0n && sq < 64) {
+    copy >>= 1n;
     sq++;
   }
   return sq < 64 ? sq : -1;
