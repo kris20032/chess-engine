@@ -1,7 +1,7 @@
 'use client';
 
 import { Position } from '@/engine';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Unicode chess pieces
 const PIECE_SYMBOLS: Record<string, string> = {
@@ -34,6 +34,7 @@ export function ChessBoard({
   const [promotionDialog, setPromotionDialog] = useState<{from: string; to: string} | null>(null);
   const [lastMove, setLastMove] = useState<{from: string; to: string} | null>(null);
   const [animatingPiece, setAnimatingPiece] = useState<{square: string; piece: string} | null>(null);
+  const [premove, setPremove] = useState<{from: string; to: string} | null>(null);
 
   // Parse FEN to get piece positions
   const position = Position.fromFEN(fen);
@@ -55,9 +56,18 @@ export function ChessBoard({
     return legalMoves.some(move => move.startsWith(from + to));
   };
 
-  const handleSquareClick = (square: string) => {
-    if (!isInteractive) return;
+  // Execute premove when it becomes player's turn
+  useEffect(() => {
+    if (premove && isInteractive) {
+      const success = onMove(premove.from, premove.to);
+      if (success) {
+        setLastMove(premove);
+      }
+      setPremove(null);
+    }
+  }, [isInteractive, premove, onMove]);
 
+  const handleSquareClick = (square: string) => {
     if (selectedSquare) {
       // Try to move
       const isPromotion = selectedSquare[1] === '7' && square[1] === '8' && getPieceAt(selectedSquare) === 'P' ||
@@ -65,7 +75,7 @@ export function ChessBoard({
 
       if (isPromotion && isLegalMove(selectedSquare, square)) {
         setPromotionDialog({ from: selectedSquare, to: square });
-      } else {
+      } else if (isInteractive) {
         const success = onMove(selectedSquare, square);
         if (success) {
           setLastMove({ from: selectedSquare, to: square });
@@ -74,6 +84,12 @@ export function ChessBoard({
           // If move failed, maybe selecting a new piece
           onSquareClick(square);
         }
+      } else {
+        // Not our turn - set as premove
+        if (isLegalMove(selectedSquare, square)) {
+          setPremove({ from: selectedSquare, to: square });
+        }
+        onSquareClick(square);
       }
     } else {
       onSquareClick(square);
@@ -81,7 +97,7 @@ export function ChessBoard({
   };
 
   const handleDragStart = (e: React.DragEvent, square: string) => {
-    if (!isInteractive) {
+    if (!isInteractive && !premove) {
       e.preventDefault();
       return;
     }
@@ -103,10 +119,15 @@ export function ChessBoard({
 
       if (isPromotion && isLegalMove(draggedFrom, square)) {
         setPromotionDialog({ from: draggedFrom, to: square });
-      } else {
+      } else if (isInteractive) {
         const success = onMove(draggedFrom, square);
         if (success) {
           setLastMove({ from: draggedFrom, to: square });
+        }
+      } else {
+        // Not our turn - set as premove
+        if (isLegalMove(draggedFrom, square)) {
+          setPremove({ from: draggedFrom, to: square });
         }
       }
     }
@@ -139,6 +160,10 @@ export function ChessBoard({
     const isLastMoveFrom = lastMove?.from === square;
     const isLastMoveTo = lastMove?.to === square;
 
+    // Check if this is premove
+    const isPremoveFrom = premove?.from === square;
+    const isPremoveTo = premove?.to === square;
+
     // Check if this is the king square and in check
     const isKingInCheck = isInCheck && (piece === 'K' || piece === 'k');
 
@@ -146,12 +171,13 @@ export function ChessBoard({
       <div
         key={square}
         className={`
-          aspect-square flex items-center justify-center text-4xl sm:text-5xl md:text-6xl cursor-pointer
-          transition-all duration-200 relative
-          ${isLight ? 'bg-amber-100' : 'bg-amber-700'}
+          aspect-square flex items-center justify-center text-6xl sm:text-7xl md:text-8xl cursor-pointer
+          transition-all duration-500 ease-out relative
+          ${isLight ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
           ${isKingInCheck ? 'bg-red-500 animate-pulse' : ''}
-          ${!isKingInCheck && (isLastMoveFrom || isLastMoveTo) ? (isLight ? 'bg-yellow-200' : 'bg-yellow-600') : ''}
-          ${isSelected ? 'ring-4 ring-blue-500 ring-inset' : ''}
+          ${!isKingInCheck && (isLastMoveFrom || isLastMoveTo) ? (isLight ? 'bg-[#cdd26a]' : 'bg-[#aaa23a]') : ''}
+          ${!isKingInCheck && (isPremoveFrom || isPremoveTo) ? (isLight ? 'bg-[#d4a574]' : 'bg-[#a67c52]') : ''}
+          ${isSelected ? 'ring-4 ring-blue-400 ring-inset' : ''}
           ${isLegalDestination ? 'ring-4 ring-green-400 ring-inset' : ''}
         `}
         onClick={() => handleSquareClick(square)}
@@ -160,32 +186,32 @@ export function ChessBoard({
       >
         {piece && (
           <div
-            draggable={isInteractive}
+            draggable={isInteractive || !!premove}
             onDragStart={(e) => handleDragStart(e, square)}
             className={`
-              select-none transition-all duration-200
-              ${isInteractive ? 'hover:scale-110 active:scale-95' : ''}
-              ${piece === piece.toUpperCase() ? 'text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]' : 'text-black drop-shadow-[0_2px_2px_rgba(255,255,255,0.5)]'}
-              ${draggedFrom === square ? 'opacity-50' : 'opacity-100'}
+              select-none transition-all duration-500 ease-out
+              ${isInteractive || premove ? 'hover:scale-110 active:scale-95 hover:drop-shadow-2xl' : ''}
+              ${piece === piece.toUpperCase() ? 'text-white drop-shadow-[0_3px_3px_rgba(0,0,0,0.9)]' : 'text-black drop-shadow-[0_3px_3px_rgba(255,255,255,0.6)]'}
+              ${draggedFrom === square ? 'opacity-40' : 'opacity-100'}
             `}
           >
             {PIECE_SYMBOLS[piece]}
           </div>
         )}
         {isLegalDestination && !piece && (
-          <div className="w-4 h-4 bg-green-500 rounded-full opacity-50 animate-pulse" />
+          <div className="w-5 h-5 bg-green-500 rounded-full opacity-60 transition-all duration-500" />
         )}
         {isLegalDestination && piece && (
-          <div className="absolute inset-0 border-4 border-green-500 rounded opacity-40 animate-pulse pointer-events-none" />
+          <div className="absolute inset-0 border-4 border-green-500 rounded opacity-50 pointer-events-none transition-all duration-500" />
         )}
         {/* Coordinate labels */}
         {file === (flipped ? 7 : 0) && (
-          <div className={`absolute left-1 top-1 text-xs font-semibold ${isLight ? 'text-amber-700' : 'text-amber-100'}`}>
+          <div className={`absolute left-1.5 top-1.5 text-xs font-bold ${isLight ? 'text-[#b58863]' : 'text-[#f0d9b5]'}`}>
             {8 - rank}
           </div>
         )}
         {rank === (flipped ? 0 : 7) && (
-          <div className={`absolute right-1 bottom-1 text-xs font-semibold ${isLight ? 'text-amber-700' : 'text-amber-100'}`}>
+          <div className={`absolute right-1.5 bottom-1 text-xs font-bold ${isLight ? 'text-[#b58863]' : 'text-[#f0d9b5]'}`}>
             {String.fromCharCode(97 + file)}
           </div>
         )}
@@ -195,23 +221,29 @@ export function ChessBoard({
 
   return (
     <div className="relative">
-      <div className="grid grid-cols-8 gap-0 border-4 border-amber-900 shadow-2xl max-w-2xl mx-auto">
+      <div className="grid grid-cols-8 gap-0 border-4 border-[#8b7355] shadow-2xl max-w-2xl mx-auto">
         {Array.from({ length: 8 }, (_, rank) =>
           Array.from({ length: 8 }, (_, file) => renderSquare(file, rank))
         )}
       </div>
 
+      {premove && (
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white px-3 py-1 rounded text-sm font-semibold shadow-lg">
+          Premove: {premove.from} → {premove.to}
+        </div>
+      )}
+
       {/* Promotion dialog */}
       {promotionDialog && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm animate-in fade-in duration-200 z-10">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl shadow-2xl border-2 border-amber-500 animate-in zoom-in-95 duration-300">
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm animate-in fade-in duration-300 z-10">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl shadow-2xl border-2 border-amber-500 animate-in zoom-in-95 duration-500">
             <h3 className="text-2xl font-bold mb-6 text-center text-amber-400">Promote to:</h3>
             <div className="flex gap-3">
               {['q', 'r', 'b', 'n'].map(piece => (
                 <button
                   key={piece}
                   onClick={() => handlePromotion(piece)}
-                  className="text-7xl hover:scale-110 active:scale-95 bg-amber-100 hover:bg-amber-200 p-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="text-7xl hover:scale-110 active:scale-95 bg-amber-100 hover:bg-amber-200 p-6 rounded-xl transition-all duration-500 shadow-lg hover:shadow-xl"
                 >
                   {PIECE_SYMBOLS[piece]}
                 </button>

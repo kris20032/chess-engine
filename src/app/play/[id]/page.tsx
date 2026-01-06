@@ -198,6 +198,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                   ? (game?.whiteId?.split('-')[0] || 'Opponent')
                   : (game?.blackId?.split('-')[0] || 'Opponent')
                 }
+                gameId={gameId}
               />
             </div>
 
@@ -220,6 +221,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ id: 
                 isActive={gameState.status === 'ongoing' && isMyTurn}
                 playerColor={playerColor || 'white'}
                 playerName={playerName}
+                gameId={gameId}
               />
             </div>
 

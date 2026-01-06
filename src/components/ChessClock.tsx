@@ -9,6 +9,7 @@ interface ChessClockProps {
   playerColor: 'white' | 'black';
   playerName?: string;
   onTimeOut?: () => void;
+  gameId?: string; // Add gameId for persistence
 }
 
 export function ChessClock({
@@ -18,12 +19,32 @@ export function ChessClock({
   playerColor,
   playerName,
   onTimeOut,
+  gameId,
 }: ChessClockProps) {
   const [timeLeft, setTimeLeft] = useState(initialTime);
+  const storageKey = gameId ? `clock-${gameId}-${playerColor}` : null;
 
+  // Load saved time on mount
   useEffect(() => {
+    if (storageKey && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const savedTime = parseInt(saved, 10);
+        if (!isNaN(savedTime) && savedTime > 0) {
+          setTimeLeft(savedTime);
+          return;
+        }
+      }
+    }
     setTimeLeft(initialTime);
-  }, [initialTime]);
+  }, [initialTime, storageKey]);
+
+  // Save time whenever it changes
+  useEffect(() => {
+    if (storageKey && typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, timeLeft.toString());
+    }
+  }, [timeLeft, storageKey]);
 
   useEffect(() => {
     if (!isActive || timeLeft <= 0) return;
@@ -60,7 +81,7 @@ export function ChessClock({
   return (
     <div
       className={`
-        p-4 rounded-xl border-2 transition-all
+        p-4 rounded-xl border-2 transition-all duration-300
         ${isActive
           ? 'bg-gradient-to-br from-green-900 to-green-800 border-green-500 shadow-lg shadow-green-500/50'
           : 'bg-slate-800 border-slate-700'
