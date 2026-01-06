@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { ChessBoard } from '@/components/ChessBoard';
 import { useChessGame } from '@/hooks/useChessGame';
 import { EvaluationBar } from '@/components/EvaluationBar';
+import { CapturedPieces } from '@/components/CapturedPieces';
 
 export default function Home() {
   const {
@@ -32,6 +34,10 @@ export default function Home() {
     navigateToMove,
   } = useChessGame(3);
 
+  const [showSettings, setShowSettings] = useState(false);
+  const [boardColorScheme, setBoardColorScheme] = useState<'classic' | 'brown' | 'blue' | 'green'>('classic');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
   const handleSquareClick = (square: string) => {
     setSelectedSquare(square);
   };
@@ -42,6 +48,13 @@ export default function Home() {
     if (diff <= 6) return 'Advanced';
     if (diff <= 8) return 'Expert';
     return 'Master';
+  };
+
+  const colorSchemes = {
+    classic: { light: '#f0d9b5', dark: '#b58863' },
+    brown: { light: '#e8d4b0', dark: '#a0826d' },
+    blue: { light: '#dee3e6', dark: '#8ca2ad' },
+    green: { light: '#ffffdd', dark: '#86a666' },
   };
 
   return (
@@ -113,45 +126,47 @@ export default function Home() {
                     flipped={!playingAsWhite}
                     isInteractive={!isAIThinking && gameState.status === 'ongoing' && !isReviewMode}
                     isInCheck={isInCheck}
+                    colorScheme={colorSchemes[boardColorScheme]}
                   />
                 </div>
               </div>
 
-              {/* Game Status Overlay */}
-              {gameState.status !== 'ongoing' && (
-                <div className="absolute inset-0 bg-black/70 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                  <div className="bg-[#262421] rounded-xl p-8 max-w-sm mx-4 border-2 border-[#81b64c]">
-                    <div className="text-center space-y-4">
-                      <div className="text-5xl">
+            </div>
+
+            {/* Game Over Banner (non-blocking) */}
+            {gameState.status !== 'ongoing' && (
+              <div className="bg-gradient-to-r from-[#262421] to-[#3d3a36] rounded-lg p-4 border-2 border-[#81b64c] shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-4xl">
+                      {gameState.status === 'checkmate'
+                        ? (gameState.winner === (playingAsWhite ? 'white' : 'black') ? '🏆' : '💔')
+                        : '🤝'}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">
                         {gameState.status === 'checkmate'
-                          ? (gameState.winner === (playingAsWhite ? 'white' : 'black') ? '🏆' : '💔')
-                          : '🤝'}
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-white mb-2">
-                          {gameState.status === 'checkmate'
-                            ? (gameState.winner === (playingAsWhite ? 'white' : 'black') ? 'Victory!' : 'Defeat')
-                            : 'Draw'}
-                        </h2>
-                        <p className="text-sm text-[#a8a29e]">
-                          {gameState.status === 'checkmate' && `${gameState.winner === 'white' ? 'White' : 'Black'} wins by checkmate`}
-                          {gameState.status === 'stalemate' && 'Stalemate'}
-                          {gameState.status === 'draw_insufficient_material' && 'Insufficient material'}
-                          {gameState.status === 'draw_fifty_move' && 'Fifty-move rule'}
-                          {gameState.status === 'draw_repetition' && 'Threefold repetition'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={resetGame}
-                        className="w-full py-3 px-6 bg-[#81b64c] hover:bg-[#6d9940] rounded-lg font-semibold transition-colors"
-                      >
-                        Play Again
-                      </button>
+                          ? (gameState.winner === (playingAsWhite ? 'white' : 'black') ? 'Victory!' : 'Defeat')
+                          : 'Draw'}
+                      </h3>
+                      <p className="text-sm text-[#a8a29e]">
+                        {gameState.status === 'checkmate' && `${gameState.winner === 'white' ? 'White' : 'Black'} wins by checkmate`}
+                        {gameState.status === 'stalemate' && 'Stalemate'}
+                        {gameState.status === 'draw_insufficient_material' && 'Insufficient material'}
+                        {gameState.status === 'draw_fifty_move' && 'Fifty-move rule'}
+                        {gameState.status === 'draw_repetition' && 'Threefold repetition'}
+                      </p>
                     </div>
                   </div>
+                  <button
+                    onClick={resetGame}
+                    className="px-6 py-2 bg-[#81b64c] hover:bg-[#6d9940] rounded-lg font-semibold transition-colors"
+                  >
+                    New Game
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Bottom Player Card */}
             <div className="bg-[#262421] rounded-lg p-4 flex items-center justify-between">
@@ -325,6 +340,65 @@ export default function Home() {
                     <span className="text-white font-medium text-xs text-right max-w-[180px]">{openingName}</span>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Captured Pieces */}
+            <div className="bg-[#262421] rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-[#a8a29e] mb-3">Captured Pieces</h3>
+              <CapturedPieces fen={fen} playerColor={playingAsWhite ? 'white' : 'black'} />
+            </div>
+
+            {/* Settings Panel */}
+            <div className="bg-[#262421] rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-[#a8a29e] mb-3">Settings</h3>
+              <div className="space-y-4">
+                {/* Sound Toggle */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-white">Sound Effects</span>
+                  <button
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      soundEnabled ? 'bg-[#81b64c]' : 'bg-[#54524f]'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        soundEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Board Color Scheme */}
+                <div>
+                  <span className="text-sm text-white mb-2 block">Board Colors</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(colorSchemes).map(([name, colors]) => (
+                      <button
+                        key={name}
+                        onClick={() => setBoardColorScheme(name as any)}
+                        className={`p-2 rounded border-2 transition-all ${
+                          boardColorScheme === name
+                            ? 'border-[#81b64c]'
+                            : 'border-[#3d3a36] hover:border-[#54524f]'
+                        }`}
+                      >
+                        <div className="flex gap-1 items-center justify-center">
+                          <div
+                            className="w-6 h-6 rounded"
+                            style={{ backgroundColor: colors.light }}
+                          />
+                          <div
+                            className="w-6 h-6 rounded"
+                            style={{ backgroundColor: colors.dark }}
+                          />
+                        </div>
+                        <div className="text-xs text-[#a8a29e] mt-1 capitalize">{name}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
